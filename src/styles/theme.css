@@ -1,0 +1,83 @@
+/* Cute pink theme tokens. Light by default with a dark-mode override. */
+
+:root {
+  /* Pinks — soft pastel scale */
+  --pink-50: #fffafc;
+  --pink-100: #fff0f6;
+  --pink-200: #ffe1ee;
+  --pink-300: #ffcfe2;
+  --pink-400: #ffb8d3;
+  --pink-500: #ff9ec3;
+  --pink-600: #fb7fab;
+  --pink-700: #ef6796;
+
+  /* Accents used in charts / secondary UI */
+  --lavender: #cf9df5;
+  --mint: #8fe0cd;
+  --sky: #86d8e2;
+  --sunny: #ffdd8a;
+
+  /* Interactive fills — deeper than the pink page so white text on buttons /
+     active tabs / progress bars stays legible against the bubblegum background. */
+  --cta-a: #ee5f9c;
+  --cta-b: #d94f88;
+
+  /* Semantic */
+  --income: #3aa878;
+  --expense: #e05a90;
+  --over-budget: #e14b78;
+
+  /* Surfaces — bubblegum-pink page (like the Add button), white cards on top */
+  --bg: #ff9ec3;
+  --bg-gradient: linear-gradient(165deg, #ffb2d4 0%, #ff98c0 52%, #ffa8ce 100%);
+  --surface: #ffffff;
+  --surface-2: #fff3f8;
+  --border: #ffdcec;
+  --border-strong: #ffc2dd;
+
+  /* Text — dark plum, reads on both white cards and the pink page */
+  --text: #5a2c46;
+  --text-soft: #8f5570;
+  --text-inverse: #ffffff;
+
+  /* Effects — softer, lighter shadows */
+  --shadow-sm: 0 2px 10px rgba(255, 158, 195, 0.16);
+  --shadow-md: 0 8px 24px rgba(255, 158, 195, 0.18);
+  --shadow-lg: 0 16px 40px rgba(251, 127, 171, 0.20);
+
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 26px;
+  --radius-pill: 999px;
+
+  --font: 'Quicksand', 'Baloo 2', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Dark theme — applied when the user toggles it via the header button, which
+   sets data-theme="dark" on <html>. Not tied to the OS preference. */
+:root[data-theme="dark"] {
+  --pink-100: #4a2436;
+  --pink-200: #5f2d44;
+
+  --cta-a: #f06ba4;
+  --cta-b: #db5691;
+
+  --income: #4ed6a3;
+  --expense: #ff9dc0;
+  --over-budget: #ff7d97;
+
+  --bg: #221019;
+  --bg-gradient: linear-gradient(165deg, #2b1322 0%, #211018 52%, #1d1322 100%);
+  --surface: #3a1c2b;
+  --surface-2: #33182a;
+  --border: #55293f;
+  --border-strong: #77415d;
+
+  --text: #ffe6f0;
+  --text-soft: #d6a3bc;
+  --text-inverse: #ffffff;
+
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
