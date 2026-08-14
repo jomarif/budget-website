@@ -185,7 +185,17 @@ export function BudgetProvider({ children }) {
   // UI view state (not persisted in the data file).
   const [timeframe, setTimeframe] = useState('month');
   const [refDate, setRefDate] = useState(() => new Date().toISOString());
-  const [categoryFilter, setCategoryFilter] = useState(null); // categoryId or null
+  // Selected category ids to filter by. Empty set = "All" (no filtering).
+  const [categoryFilter, setCategoryFilter] = useState(() => new Set());
+  const toggleCategoryFilter = useCallback((id) => {
+    setCategoryFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const clearCategoryFilter = useCallback(() => setCategoryFilter(new Set()), []);
 
   // --- Cloud sync (Supabase, normalized tables) -------------------------------
   // Row-level sync so two devices editing *different* rows don't clobber each
@@ -345,7 +355,7 @@ export function BudgetProvider({ children }) {
     // view state
     timeframe, setTimeframe,
     refDate, setRefDate,
-    categoryFilter, setCategoryFilter,
+    categoryFilter, toggleCategoryFilter, clearCategoryFilter,
   };
 
   return <BudgetContext.Provider value={value}>{children}</BudgetContext.Provider>;

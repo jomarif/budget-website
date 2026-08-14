@@ -7,7 +7,7 @@ import { useBudget } from '../context/BudgetContext.jsx';
 import { usePeriodEntries } from '../hooks/usePeriod.js';
 
 export default function CategoryFilter() {
-  const { activeBudget, categoryFilter, setCategoryFilter } = useBudget();
+  const { activeBudget, categoryFilter, toggleCategoryFilter, clearCategoryFilter } = useBudget();
   const { periodEntries } = usePeriodEntries();
 
   const activeCategoryIds = useMemo(() => {
@@ -25,17 +25,17 @@ export default function CategoryFilter() {
   return (
     <div className="chips">
       <button
-        className={`chip${categoryFilter === null ? ' active' : ''}`}
-        onClick={() => setCategoryFilter(null)}
+        className={`chip${categoryFilter.size === 0 ? ' active' : ''}`}
+        onClick={clearCategoryFilter}
       >
         ✨ All
       </button>
       {shown.map((c) => (
         <button
           key={c.id}
-          className={`chip${categoryFilter === c.id ? ' active' : ''}`}
-          style={categoryFilter === c.id ? { color: c.color } : undefined}
-          onClick={() => setCategoryFilter(categoryFilter === c.id ? null : c.id)}
+          className={`chip${categoryFilter.has(c.id) ? ' active' : ''}`}
+          style={categoryFilter.has(c.id) ? { color: c.color } : undefined}
+          onClick={() => toggleCategoryFilter(c.id)}
         >
           <span className="chip-swatch" style={{ background: c.color }} />
           {c.emoji} {c.name}

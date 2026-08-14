@@ -27,14 +27,14 @@ export default function ExpenseList() {
         📋 Spendings
         <span className="sub">
           {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
-          {categoryFilter && <> · <strong>{formatMoney(filteredTotal)}</strong></>}
+          {categoryFilter.size > 0 && <> · <strong>{formatMoney(filteredTotal)}</strong></>}
         </span>
       </div>
 
       {filteredEntries.length === 0 ? (
         <div className="list-empty">
-          {categoryFilter
-            ? 'No entries in this category for this period 🌷'
+          {categoryFilter.size > 0
+            ? 'No entries in the selected categories for this period 🌷'
             : 'Nothing here yet — tap “Add” to log your first entry! 🎀'}
         </div>
       ) : (

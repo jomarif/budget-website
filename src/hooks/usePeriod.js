@@ -18,9 +18,9 @@ export function usePeriodEntries() {
 
   const filteredEntries = useMemo(
     () =>
-      categoryFilter
-        ? periodEntries.filter((e) => e.categoryId === categoryFilter)
-        : periodEntries,
+      categoryFilter.size === 0
+        ? periodEntries
+        : periodEntries.filter((e) => categoryFilter.has(e.categoryId)),
     [periodEntries, categoryFilter]
   );
 

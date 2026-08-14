@@ -20,7 +20,7 @@ function TooltipContent({ active, payload }) {
 }
 
 export default function CategoryPieChart() {
-  const { getCategory, categoryFilter, setCategoryFilter } = useBudget();
+  const { getCategory, categoryFilter, toggleCategoryFilter } = useBudget();
   const { periodEntries } = usePeriodEntries();
   const c = useThemeColors();
 
@@ -68,17 +68,13 @@ export default function CategoryPieChart() {
                   paddingAngle={2}
                   stroke={c.surface}
                   strokeWidth={2}
-                  onClick={(slice) =>
-                    setCategoryFilter(
-                      categoryFilter === slice.categoryId ? null : slice.categoryId
-                    )
-                  }
+                  onClick={(slice) => toggleCategoryFilter(slice.categoryId)}
                 >
                   {data.map((d) => (
                     <Cell
                       key={d.categoryId}
                       fill={d.color}
-                      opacity={!categoryFilter || categoryFilter === d.categoryId ? 1 : 0.28}
+                      opacity={categoryFilter.size === 0 || categoryFilter.has(d.categoryId) ? 1 : 0.28}
                       style={{ cursor: 'pointer', outline: 'none' }}
                     />
                   ))}
@@ -102,11 +98,9 @@ export default function CategoryPieChart() {
             {data.map((d) => (
               <button
                 key={d.categoryId}
-                className={`chip${categoryFilter === d.categoryId ? ' active' : ''}`}
-                style={categoryFilter === d.categoryId ? { color: d.color } : undefined}
-                onClick={() =>
-                  setCategoryFilter(categoryFilter === d.categoryId ? null : d.categoryId)
-                }
+                className={`chip${categoryFilter.has(d.categoryId) ? ' active' : ''}`}
+                style={categoryFilter.has(d.categoryId) ? { color: d.color } : undefined}
+                onClick={() => toggleCategoryFilter(d.categoryId)}
               >
                 <span className="chip-swatch" style={{ background: d.color }} />
                 {d.emoji} {d.name} · {d.pct}%
