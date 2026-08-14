@@ -181,6 +181,9 @@ input, select { font-family: inherit; }
 /* ---------- Expense list ---------- */
 .list { display: flex; flex-direction: column; gap: 8px; }
 .list-empty { text-align: center; color: var(--text-soft); padding: 30px 10px; font-weight: 600; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; }
+.pager-info { font-size: .82rem; font-weight: 700; color: var(--text-soft); min-width: 92px; text-align: center; }
+.pager .btn:disabled { opacity: .4; cursor: default; transform: none; box-shadow: none; }
 .entry {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 14px; border-radius: var(--radius);
