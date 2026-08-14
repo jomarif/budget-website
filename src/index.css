@@ -302,6 +302,7 @@ input, select { font-family: inherit; }
 
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; align-items: center; }
 .modal-actions .spacer { flex: 1; }
+.confirm-message { color: var(--text); font-weight: 600; line-height: 1.5; margin: 4px 0 0; }
 
 /* ---------- Category manager rows ---------- */
 .cat-manage-row {

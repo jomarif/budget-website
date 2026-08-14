@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useBudget } from '../context/BudgetContext.jsx';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 import Modal from './Modal.jsx';
 
 const PROFILE_EMOJI = ['🌸', '🦄', '🐰', '🐣', '🌷', '⭐', '🍓', '🧁', '🐨', '🌈', '💜', '🐷'];
@@ -61,6 +62,7 @@ function BudgetModal({ initial, onSave, onDelete, onClose, canDelete }) {
 
 export default function BudgetTabs() {
   const { state, dispatch } = useBudget();
+  const confirm = useConfirm();
   const [modal, setModal] = useState(null); // { mode: 'new' } | { mode: 'edit', budget }
 
   return (
@@ -112,8 +114,13 @@ export default function BudgetTabs() {
             dispatch({ type: 'RENAME_BUDGET', id: modal.budget.id, name, emoji });
             setModal(null);
           }}
-          onDelete={() => {
-            if (window.confirm(`Delete "${modal.budget.name}" and all its data?`)) {
+          onDelete={async () => {
+            if (await confirm({
+              title: 'Delete profile?',
+              message: `“${modal.budget.name}” and all its entries, categories, goals and recurring rules will be permanently deleted.`,
+              confirmLabel: 'Delete',
+              danger: true,
+            })) {
               dispatch({ type: 'DELETE_BUDGET', id: modal.budget.id });
               setModal(null);
             }

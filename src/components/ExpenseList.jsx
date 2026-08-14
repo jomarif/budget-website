@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useBudget } from '../context/BudgetContext.jsx';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 import { usePeriodEntries } from '../hooks/usePeriod.js';
 import { formatMoney } from '../lib/money.js';
 import { formatEntryDate } from '../lib/dates.js';
@@ -10,6 +11,7 @@ import ExpenseFormModal from './ExpenseFormModal.jsx';
 
 export default function ExpenseList() {
   const { getCategory, dispatch, categoryFilter } = useBudget();
+  const confirm = useConfirm();
   const { filteredEntries } = usePeriodEntries();
   const [editing, setEditing] = useState(null);
 
@@ -55,8 +57,13 @@ export default function ExpenseList() {
                   <button
                     className="btn btn-icon btn-ghost"
                     title="Delete"
-                    onClick={() => {
-                      if (window.confirm(`Delete “${e.name}”?`)) {
+                    onClick={async () => {
+                      if (await confirm({
+                        title: 'Delete entry?',
+                        message: `“${e.name}” will be removed. This can't be undone.`,
+                        confirmLabel: 'Delete',
+                        danger: true,
+                      })) {
                         dispatch({ type: 'DELETE_ENTRY', id: e.id });
                       }
                     }}

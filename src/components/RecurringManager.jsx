@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { useBudget } from '../context/BudgetContext.jsx';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 import { toDateInputValue, fromDateInputValue } from '../lib/dates.js';
 import { formatMoney } from '../lib/money.js';
 import Modal from './Modal.jsx';
@@ -105,6 +106,7 @@ function ruleSummary(rule, categories) {
 
 export default function RecurringManager({ onClose }) {
   const { activeBudget, dispatch } = useBudget();
+  const confirm = useConfirm();
   const [adding, setAdding] = useState(false);
 
   function addRule(rule) {
@@ -135,8 +137,13 @@ export default function RecurringManager({ onClose }) {
                 </div>
               </span>
               <button className="btn btn-icon btn-ghost" title="Delete"
-                onClick={() => {
-                  if (window.confirm(`Stop recurring “${r.name}”? Already-added entries stay.`)) {
+                onClick={async () => {
+                  if (await confirm({
+                    title: 'Stop recurring rule?',
+                    message: `“${r.name}” won't generate new entries. Already-added entries stay.`,
+                    confirmLabel: 'Stop',
+                    danger: true,
+                  })) {
                     dispatch({ type: 'DELETE_RECURRING', id: r.id });
                   }
                 }}>🗑️</button>

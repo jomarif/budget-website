@@ -3,10 +3,12 @@
 
 import { useRef } from 'react';
 import { useBudget } from '../context/BudgetContext.jsx';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 import { exportToJSON, parseImportedJSON } from '../lib/storage.js';
 
 export default function ExportImport() {
   const { state, dispatch } = useBudget();
+  const confirm = useConfirm();
   const fileRef = useRef(null);
 
   function handleExport() {
@@ -25,10 +27,15 @@ export default function ExportImport() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const imported = parseImportedJSON(String(reader.result));
-        if (window.confirm('This will replace ALL current data with the file’s contents. Continue?')) {
+        if (await confirm({
+          title: 'Replace all data?',
+          message: 'This will overwrite ALL current data with the file’s contents. This can’t be undone.',
+          confirmLabel: 'Replace',
+          danger: true,
+        })) {
           dispatch({ type: 'REPLACE_STATE', state: imported });
         }
       } catch (err) {

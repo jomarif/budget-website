@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useBudget } from '../context/BudgetContext.jsx';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 import Modal from './Modal.jsx';
 import { EMOJI_CHOICES, CATEGORY_COLORS } from '../lib/defaults.js';
 import { formatMoney } from '../lib/money.js';
@@ -66,6 +67,7 @@ function CategoryEditor({ initial, onSave, onCancel }) {
 
 export default function CategoryManager({ onClose }) {
   const { activeBudget, dispatch } = useBudget();
+  const confirm = useConfirm();
   const [editingId, setEditingId] = useState(null); // category id | 'new' | null
 
   return (
@@ -84,8 +86,13 @@ export default function CategoryManager({ onClose }) {
               <button className="btn btn-icon btn-ghost" title="Edit"
                 onClick={() => setEditingId(editingId === c.id ? null : c.id)}>✎</button>
               <button className="btn btn-icon btn-ghost" title="Delete"
-                onClick={() => {
-                  if (window.confirm(`Delete category “${c.name}”? Existing entries will show as Uncategorized.`)) {
+                onClick={async () => {
+                  if (await confirm({
+                    title: 'Delete category?',
+                    message: `“${c.name}” will be removed. Existing entries will show as Uncategorized.`,
+                    confirmLabel: 'Delete',
+                    danger: true,
+                  })) {
                     dispatch({ type: 'DELETE_CATEGORY', id: c.id });
                   }
                 }}>🗑️</button>

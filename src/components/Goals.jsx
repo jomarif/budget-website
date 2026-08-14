@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useBudget } from '../context/BudgetContext.jsx';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 import { formatMoney, sum } from '../lib/money.js';
 import { GOAL_EMOJI_CHOICES } from '../lib/defaults.js';
 import Modal from './Modal.jsx';
@@ -108,6 +109,7 @@ function ContributeModal({ goal, saved, onClose, onAdd }) {
 
 export default function Goals() {
   const { activeBudget, dispatch } = useBudget();
+  const confirm = useConfirm();
   const [modal, setModal] = useState(null); // {mode:'new'} | {mode:'edit',goal} | {mode:'contribute',goal}
 
   const goals = activeBudget.goals;
@@ -175,8 +177,13 @@ export default function Goals() {
           initial={modal.goal}
           onClose={() => setModal(null)}
           onSave={(goal) => { dispatch({ type: 'UPDATE_GOAL', goal: { id: modal.goal.id, ...goal } }); setModal(null); }}
-          onDelete={() => {
-            if (window.confirm(`Delete goal “${modal.goal.name}”?`)) {
+          onDelete={async () => {
+            if (await confirm({
+              title: 'Delete goal?',
+              message: `“${modal.goal.name}” will be removed. Money you already saved toward it stays as spending entries.`,
+              confirmLabel: 'Delete',
+              danger: true,
+            })) {
               dispatch({ type: 'DELETE_GOAL', id: modal.goal.id });
               setModal(null);
             }
