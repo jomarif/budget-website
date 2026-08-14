@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useBudget } from './context/BudgetContext.jsx';
+import { useAuth } from './context/AuthContext.jsx';
 import { useTheme } from './hooks/useTheme.js';
 import BudgetTabs from './components/BudgetTabs.jsx';
 import Toolbar from './components/Toolbar.jsx';
@@ -18,8 +19,16 @@ import CategoryManager from './components/CategoryManager.jsx';
 import RecurringManager from './components/RecurringManager.jsx';
 import ExpenseFormModal from './components/ExpenseFormModal.jsx';
 
+const SYNC_LABELS = {
+  offline: '💾 Local only',
+  syncing: '🔄 Syncing…',
+  synced: '☁️ Synced',
+  error: '⚠️ Sync error',
+};
+
 export default function App() {
-  const { activeBudget } = useBudget();
+  const { activeBudget, syncStatus } = useBudget();
+  const { signOut } = useAuth();
   const { theme, toggle } = useTheme();
   const [addOpen, setAddOpen] = useState(false);
   const [manageCats, setManageCats] = useState(false);
@@ -43,6 +52,8 @@ export default function App() {
           <button className="btn btn-sm" onClick={() => setManageCats(true)}>🏷️ Categories</button>
           <button className="btn btn-sm" onClick={() => setManageRecurring(true)}>🔁 Recurring</button>
           <ExportImport />
+          <span className="sync-pill">{SYNC_LABELS[syncStatus] || SYNC_LABELS.offline}</span>
+          <button className="btn btn-sm" onClick={signOut}>🚪 Sign out</button>
         </div>
       </header>
 
@@ -72,7 +83,7 @@ export default function App() {
       </div>
 
       <p className="footer-note">
-        💾 Saved on this device ({activeBudget.name}). Export a backup to keep it safe or move it between devices.
+        {activeBudget.name} · synced to your account across devices.
       </p>
 
       <button className="fab" onClick={() => setAddOpen(true)}>

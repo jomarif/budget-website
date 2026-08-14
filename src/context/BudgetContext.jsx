@@ -3,13 +3,18 @@
 // reference date, category filter). Persisted to localStorage on every change.
 
 import {
-  createContext, useContext, useEffect, useMemo, useReducer, useState, useCallback,
+  createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, useCallback,
 } from 'react';
 import {
   loadState, saveState, makeBudget, uid, normalizeState, ensureSavingsCategory,
 } from '../lib/storage.js';
 import { catchUpRecurring } from '../lib/recurring.js';
 import { CATEGORY_COLORS } from '../lib/defaults.js';
+import { supabase } from '../lib/supabaseClient.js';
+import {
+  SYNC_TABLES, flattenState, assembleState, flatSignature, pushDiff, fetchAllRows,
+} from '../lib/cloudSync.js';
+import { useAuth } from './AuthContext.jsx';
 
 const BudgetContext = createContext(null);
 
@@ -171,6 +176,7 @@ function reducer(state, action) {
 // --- Provider ----------------------------------------------------------------
 
 export function BudgetProvider({ children }) {
+  const { user } = useAuth();
   const [state, dispatch] = useReducer(reducer, undefined, () => {
     const loaded = loadState();
     return catchUpRecurring(loaded); // materialize any missed recurring entries
@@ -181,10 +187,138 @@ export function BudgetProvider({ children }) {
   const [refDate, setRefDate] = useState(() => new Date().toISOString());
   const [categoryFilter, setCategoryFilter] = useState(null); // categoryId or null
 
-  // Persist on every data change.
+  // --- Cloud sync (Supabase, normalized tables) -------------------------------
+  // Row-level sync so two devices editing *different* rows don't clobber each
+  // other. On every local change we diff the previous synced snapshot against
+  // the current state and push only the rows that changed. On any remote change
+  // we refetch and rebuild the tree. `lastFlatRef` is the snapshot we believe
+  // the DB currently holds — it's both the diff baseline and the echo detector.
+  const [syncStatus, setSyncStatus] = useState('offline'); // offline|syncing|synced|error
+  const pulledRef = useRef(false);          // initial pull done for this session?
+  const skipNextPushRef = useRef(false);    // next state change came from the network
+  const lastFlatRef = useRef(null);         // flat snapshot the DB is believed to hold
+
+  // Keep the latest active-budget id reachable from the realtime callback
+  // without re-subscribing on every selection change.
+  const activeIdRef = useRef(state.activeBudgetId);
+  useEffect(() => {
+    activeIdRef.current = state.activeBudgetId;
+  }, [state.activeBudgetId]);
+
+  // Persist locally on every data change (instant, always-on offline cache).
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  // Initial pull on login. If the account already has rows, remote wins (then
+  // recurring catch-up runs against it, and the push effect below reconciles
+  // any newly materialized entries). If it's empty, seed it from local state.
+  useEffect(() => {
+    if (!supabase || !user) {
+      pulledRef.current = false;
+      return;
+    }
+    let cancelled = false;
+    setSyncStatus('syncing');
+    fetchAllRows(supabase, user.id)
+      .then((rows) => {
+        if (cancelled) return;
+        const hasCloudData = rows.budgets.length > 0;
+        if (hasCloudData) {
+          const cloudState = assembleState(rows, activeIdRef.current);
+          lastFlatRef.current = flattenState(cloudState, user.id); // baseline = cloud
+          pulledRef.current = true;
+          // catchUpRecurring may add entries; those get pushed by the effect below.
+          dispatch({ type: 'REPLACE_STATE', state: catchUpRecurring(cloudState) });
+          setSyncStatus('synced');
+        } else {
+          const emptyFlat = flattenState({ budgets: [] }, user.id);
+          const localFlat = flattenState(state, user.id);
+          lastFlatRef.current = emptyFlat;
+          pulledRef.current = true;
+          pushDiff(emptyFlat, localFlat, supabase)
+            .then(() => {
+              lastFlatRef.current = localFlat;
+              setSyncStatus('synced');
+            })
+            .catch((err) => {
+              console.error('Cloud seed failed', err);
+              setSyncStatus('error');
+            });
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('Cloud sync pull failed', err);
+        setSyncStatus('error');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // Debounced diff-push whenever state changes locally after the initial pull.
+  useEffect(() => {
+    if (!supabase || !user || !pulledRef.current) return;
+    if (skipNextPushRef.current) {
+      skipNextPushRef.current = false;
+      return; // this change came from the network — DB already matches
+    }
+    const nextFlat = flattenState(state, user.id);
+    setSyncStatus('syncing');
+    const timer = setTimeout(() => {
+      pushDiff(lastFlatRef.current, nextFlat, supabase)
+        .then(() => {
+          lastFlatRef.current = nextFlat;
+          setSyncStatus('synced');
+        })
+        .catch((err) => {
+          console.error('Cloud sync push failed', err);
+          setSyncStatus('error');
+        });
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [state, user]);
+
+  // Live updates from other devices: any row change on any table triggers a
+  // debounced full refetch. If the refetched snapshot is identical to what we
+  // last pushed (the echo of our own write), we skip re-applying it.
+  useEffect(() => {
+    if (!supabase || !user) return;
+    let timer;
+    const scheduleRefetch = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        fetchAllRows(supabase, user.id)
+          .then((rows) => {
+            const remoteState = assembleState(rows, activeIdRef.current);
+            const remoteFlat = flattenState(remoteState, user.id);
+            if (lastFlatRef.current && flatSignature(remoteFlat) === flatSignature(lastFlatRef.current)) {
+              return; // echo of our own write — nothing new
+            }
+            lastFlatRef.current = remoteFlat;
+            skipNextPushRef.current = true;
+            dispatch({ type: 'REPLACE_STATE', state: remoteState });
+            setSyncStatus('synced');
+          })
+          .catch((err) => console.error('Cloud sync refetch failed', err));
+      }, 400);
+    };
+
+    const channel = supabase.channel(`sync_${user.id}`);
+    for (const table of SYNC_TABLES) {
+      channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table, filter: `user_id=eq.${user.id}` },
+        scheduleRefetch
+      );
+    }
+    channel.subscribe();
+    return () => {
+      clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const activeBudget = useMemo(
     () => state.budgets.find((b) => b.id === state.activeBudgetId) || state.budgets[0],
@@ -207,6 +341,7 @@ export function BudgetProvider({ children }) {
     dispatch,
     activeBudget,
     getCategory,
+    syncStatus,
     // view state
     timeframe, setTimeframe,
     refDate, setRefDate,
