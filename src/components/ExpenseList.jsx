@@ -1,11 +1,11 @@
 // The list of entries for the current period (respecting the category filter).
 // Each row shows name, category, amount and date, with edit/delete actions.
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useBudget } from '../context/BudgetContext.jsx';
 import { useConfirm } from '../context/ConfirmContext.jsx';
 import { usePeriodEntries } from '../hooks/usePeriod.js';
-import { formatMoney } from '../lib/money.js';
+import { formatMoney, sum } from '../lib/money.js';
 import { formatEntryDate } from '../lib/dates.js';
 import ExpenseFormModal from './ExpenseFormModal.jsx';
 
@@ -15,11 +15,20 @@ export default function ExpenseList() {
   const { filteredEntries } = usePeriodEntries();
   const [editing, setEditing] = useState(null);
 
+  // When a category is selected, total just its (expense) entries for the period.
+  const filteredTotal = useMemo(
+    () => sum(filteredEntries.filter((e) => e.type !== 'income').map((e) => e.amount)),
+    [filteredEntries]
+  );
+
   return (
     <div className="card">
       <div className="card-title">
         📋 Spendings
-        <span className="sub">{filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}</span>
+        <span className="sub">
+          {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+          {categoryFilter && <> · <strong>{formatMoney(filteredTotal)}</strong></>}
+        </span>
       </div>
 
       {filteredEntries.length === 0 ? (
